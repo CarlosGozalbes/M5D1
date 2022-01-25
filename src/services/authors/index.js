@@ -22,6 +22,10 @@ authorsRouter.post("/", (req, res) => {
 
   if (authorsArray.some((author) => author.email === req.body.email)) {
     //object.value()
+    // if (Object.values(JSON.stringify(authorsArray)).indexOf(author.email) > -1) {
+    //   console.log("has test1");
+    //}
+
     console.log("email already exist");
     res.status(400).send({ message: "Email already exists" });
   } else {
