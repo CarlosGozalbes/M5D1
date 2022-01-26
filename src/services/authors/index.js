@@ -4,6 +4,7 @@ import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import uniqid from "uniqid";
 
+
 const authorsRouter = express.Router();
 
 const currentFilePath = fileURLToPath(import.meta.url);
@@ -11,6 +12,10 @@ const currentFilePath = fileURLToPath(import.meta.url);
 const parentFolderPath = dirname(currentFilePath);
 
 const authorsJSONPath = join(parentFolderPath, "authors.json");
+
+//const authorsJSONPath = join(dirname(fileURLtoPath(import.meta.url)), "books.json")
+//const getAuthors = (authorsJSONPath) => JSON.parse(fs.readFileSync(authorsJSONPath));
+//const writeAuthors = (authorsArray) => fs.writeFileSync(authorsJSONPath, JSON.stringify(authorsArray));
 
 authorsRouter.post("/", (req, res) => {
   console.log("REQUEST BODY: ", req.body);
