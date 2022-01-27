@@ -5,15 +5,15 @@ import { dirname, join } from "path";
 import uniqid from "uniqid";
 import createHttpError from "http-errors";
 import { validationResult } from "express-validator";
-import { newBlogPostsValidation } from "./validation";
+import { newBlogPostsValidation } from "./validation.js";
 
-//first we define the url to the JSON 
+//first we define the url to the JSON
 const blogPostsJSONPath = join(
   dirname(fileURLToPath(import.meta.url)),
   "blogPosts.json"
 );
 
-//and create functions to read and write the JSON 
+//and create functions to read and write the JSON
 
 const getBlogPosts = (blogPostsJSONPath) =>
   JSON.parse(fs.readFileSync(blogPostsJSONPath));
@@ -21,8 +21,8 @@ const getBlogPosts = (blogPostsJSONPath) =>
 const writeBlogPosts = (blogPostsArray) =>
   fs.writeFileSync(blogPostsJSONPath, JSON.stringify(blogPostsArray));
 
-
 //then we create the CRUD
+const blogPostsRouter = express.Router();
 
 blogPostsRouter.post("/", newBlogPostsValidation, (req, res, next) => {
   try {
@@ -36,7 +36,7 @@ blogPostsRouter.post("/", newBlogPostsValidation, (req, res, next) => {
       };
 
       // 2. Read books.json file --> buffer --> array
-      const blogPostsArray = getBlogPosts();
+      const blogPostsArray = getBlogPosts(blogPostsJSONPath);
 
       // 3. Add new book to array
       blogPostsArray.push(newBlogPosts);
@@ -58,7 +58,6 @@ blogPostsRouter.post("/", newBlogPostsValidation, (req, res, next) => {
   }
 });
 
-
 blogPostsRouter.get("/", (req, res, next) => {
   try {
     const blogPostsArray = getBlogPosts();
@@ -69,15 +68,15 @@ blogPostsRouter.get("/", (req, res, next) => {
   }
 });
 
-
-
 blogPostsRouter.get("/:blogPostId", (req, res, next) => {
   try {
     const blogPostId = req.params.blogPostId;
 
     const blogPostsArray = getBlogPosts();
 
-    const foundBlogPosts = blogPostsArray.find((blogPosts) => blogPost._id === blogPostId);
+    const foundBlogPosts = blogPostsArray.find(
+      (blogPosts) => blogPost._id === blogPostId
+    );
     if (foundBlogPosts) {
       res.send(foundBlogPosts);
     } else {
@@ -93,7 +92,6 @@ blogPostsRouter.get("/:blogPostId", (req, res, next) => {
   }
 });
 
-
 blogPostsRouter.put("/:blogPostId", (req, res, next) => {
   try {
     const blogPostId = req.params.blogPostsRouter;
@@ -106,7 +104,11 @@ blogPostsRouter.put("/:blogPostId", (req, res, next) => {
 
     const oldBlogPost = blogPostsArray[index];
 
-    const updatedBlogPost = { ...oldBlogPost, ...req.body, updatedAt: new Date() };
+    const updatedBlogPost = {
+      ...oldBlogPost,
+      ...req.body,
+      updatedAt: new Date(),
+    };
 
     blogPostsArray[index] = updatedBlogPost;
 
@@ -135,6 +137,5 @@ blogPostsRouter.delete("/:blogPostId", (req, res, next) => {
     next(error);
   }
 });
-
 
 export default blogPostsRouter;
