@@ -199,7 +199,7 @@ blogPostsRouter.get("/:blogPostId/comments", async (req, res, next) => {
   }
 });
 
-blogPostsRouter.put(
+blogPostsRouter.post(
   "/:blogPostId/comment",
   async (req, res, next) => {
     try {
