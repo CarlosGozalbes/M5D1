@@ -6,25 +6,28 @@ import uniqid from "uniqid";
 import createHttpError from "http-errors";
 import { validationResult } from "express-validator";
 import { newBlogPostsValidation } from "./validation.js";
+import multer from "multer";
+import { saveBlogPostsCovers } from "../../lib/fs-tools.js";
+import { getBlogPosts, writeBlogPosts } from "../../lib/fs-tools.js";
 
 //first we define the url to the JSON
-const blogPostsJSONPath = join(
-  dirname(fileURLToPath(import.meta.url)),
-  "blogPosts.json"
-);
+// const blogPostsJSONPath = join(
+//   dirname(fileURLToPath(import.meta.url)),
+//   "blogPosts.json"
+// );
 
-//and create functions to read and write the JSON
+// //and create functions to read and write the JSON
 
-const getBlogPosts = (blogPostsJSONPath) =>
-  JSON.parse(fs.readFileSync(blogPostsJSONPath));
+// const getBlogPosts = (blogPostsJSONPath) =>
+//   JSON.parse(fs.readFileSync(blogPostsJSONPath));
 
-const writeBlogPosts = (blogPostsArray) =>
-  fs.writeFileSync(blogPostsJSONPath, JSON.stringify(blogPostsArray));
+// const writeBlogPosts = (blogPostsArray) =>
+//   fs.writeFileSync(blogPostsJSONPath, JSON.stringify(blogPostsArray));
 
 //then we create the CRUD
 const blogPostsRouter = express.Router();
 
-blogPostsRouter.post("/", newBlogPostsValidation, (req, res, next) => {
+blogPostsRouter.post("/", newBlogPostsValidation, async (req, res, next) => {
   try {
     const errorsList = validationResult(req);
     if (errorsList.isEmpty()) {
@@ -36,13 +39,13 @@ blogPostsRouter.post("/", newBlogPostsValidation, (req, res, next) => {
       };
 
       // 2. Read books.json file --> buffer --> array
-      const blogPostsArray = getBlogPosts(blogPostsJSONPath);
+      const blogPostsArray =  await getBlogPosts();
 
       // 3. Add new book to array
       blogPostsArray.push(newBlogPosts);
 
       // 4. Write array to file
-      writeBlogPosts(blogPostsArray);
+      await writeBlogPosts(blogPostsArray);
 
       // 5. Send back a proper response
       res.status(201).send({ id: newBlogPosts._id });
@@ -58,9 +61,9 @@ blogPostsRouter.post("/", newBlogPostsValidation, (req, res, next) => {
   }
 });
 
-blogPostsRouter.get("/", (req, res, next) => {
+blogPostsRouter.get("/", async (req, res, next) => {
   try {
-    const blogPostsArray = getBlogPosts();
+    const blogPostsArray = await getBlogPosts();
 
     res.send(blogPostsArray);
   } catch (error) {
@@ -68,15 +71,13 @@ blogPostsRouter.get("/", (req, res, next) => {
   }
 });
 
-blogPostsRouter.get("/:blogPostId", (req, res, next) => {
+blogPostsRouter.get("/:blogPostId", async (req, res, next) => {
   try {
     const blogPostId = req.params.blogPostId;
 
-    const blogPostsArray = getBlogPosts();
+    const blogPostsArray = await getBlogPosts();
 
-    const foundBlogPosts = blogPostsArray.find(
-      (blogPosts) => blogPost._id === blogPostId
-    );
+    const foundBlogPosts = blogPostsArray.find((blogPost) => blogPost._id === blogPostId );
     if (foundBlogPosts) {
       res.send(foundBlogPosts);
     } else {
@@ -92,11 +93,11 @@ blogPostsRouter.get("/:blogPostId", (req, res, next) => {
   }
 });
 
-blogPostsRouter.put("/:blogPostId", (req, res, next) => {
+blogPostsRouter.put("/:blogPostId", async (req, res, next) => {
   try {
     const blogPostId = req.params.blogPostsRouter;
 
-    const blogPostsArray = getBlogPosts();
+    const blogPostsArray = await getBlogPosts();
 
     const index = blogPostsArray.findIndex(
       (blogPost) => blogPost._id === blogPostId
@@ -112,7 +113,7 @@ blogPostsRouter.put("/:blogPostId", (req, res, next) => {
 
     blogPostsArray[index] = updatedBlogPost;
 
-    writeBlogPosts(blogPostsArray);
+    await writeBlogPosts(blogPostsArray);
 
     res.send(updatedBlogPost);
   } catch (error) {
@@ -120,17 +121,17 @@ blogPostsRouter.put("/:blogPostId", (req, res, next) => {
   }
 });
 
-blogPostsRouter.delete("/:blogPostId", (req, res, next) => {
+blogPostsRouter.delete("/:blogPostId", async (req, res, next) => {
   try {
     const blogPostId = req.params.blogPostId;
 
-    const blogPostsArray = getBlogPosts();
+    const blogPostsArray = await getBlogPosts();
 
     const remaningBlogPosts = blogPostsArray.filter(
       (blogPosts) => blogPosts._id !== blogPostId
     );
 
-    writeBlogPosts(remaningBlogPosts);
+    await writeBlogPosts(remaningBlogPosts);
 
     res.status(204).send();
   } catch (error) {
@@ -138,4 +139,145 @@ blogPostsRouter.delete("/:blogPostId", (req, res, next) => {
   }
 });
 
+blogPostsRouter.post(
+  "/:blogPostId/uploadCover",
+  multer().single("cover"),
+  async (req, res, next) => {
+    // "avatar" does need to match exactly to the name used in FormData field in the frontend, otherwise Multer is not going to be able to find the file in the req.body
+    try {
+      console.log("FILE: ", req.file);
+      await saveBlogPostsCovers(req.file.originalname, req.file.buffer);
+      const blogPostId = req.params.blogPostsRouter;
+
+      const blogPostsArray = await getBlogPosts();
+
+      const index = blogPostsArray.findIndex(
+        (blogPost) => blogPost._id === blogPostId
+      );
+
+      const oldBlogPost = blogPostsArray[index];
+
+      const updatedBlogPost = {
+        ...oldBlogPost,
+        cover: req.file,
+        updatedAt: new Date(),
+      };
+
+      blogPostsArray[index] = updatedBlogPost;
+
+      await writeBlogPosts(blogPostsArray);
+      
+      
+      res.send("Ok");
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+
+// GET /blogPosts/:id/comments, get all the comments for a specific post
+
+blogPostsRouter.get("/:blogPostId/comments", async (req, res, next) => {
+  try {
+    const blogPostId = req.params.blogPostId;
+
+    const blogPostsArray = await getBlogPosts();
+
+    const foundBlogPosts = blogPostsArray.find(
+      (blogPost) => blogPost._id === blogPostId
+    );
+    if (!foundBlogPosts) {
+      res.status(404)
+      .send({ message: `blog with ${req.params.id} is not found!`});
+    } 
+      
+    foundBlogPosts.comments = foundBlogPosts.comments || [];
+    res.send(foundBlogPosts.comments)
+  } catch (error) {
+    next(error);
+  }
+});
+
+blogPostsRouter.put(
+  "/:blogPostId/comment",
+  async (req, res, next) => {
+    try {
+      const { text, userName } = req.body;
+      const comment = { id: uniqid(), text, userName, createdAt: new Date() };
+
+      const blogPostsArray = await getBlogPosts();
+
+      const index = blogPostsArray.findIndex(
+        (blogPost) => blogPost._id === req.params.blogPostId
+      );
+      if (!index == -1) {
+        res.status(404).send({
+          message: `blog with ${req.params.blogPostId} is not found!`,
+        });
+      }
+      const oldBlogPost = blogPostsArray[index];
+      oldBlogPost.comments = oldBlogPost.comments || [];
+      const updatedBlogPost = {
+        ...oldBlogPost,
+        ...req.body,
+        comments: [...oldBlogPost.comments, comment],
+        updatedAt: new Date(),
+        id: req.params.id,
+      };
+      blogPostsArray[index] = updatedBlogPost;
+
+      await writeBlogPosts(blogPostsArray);
+      res.send("ok");
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+
 export default blogPostsRouter;
+
+// blogpostRouter.put("/:id/comments", async (req, res, next) => {
+//   try {
+//     const { text, userName } = req.body;
+//     const comment = { id: uniqid(), text, userName, createdAt: new Date() };
+//     const blogPostJson = await readBlogPostJson(); //reading  blogPostJson is (array of object) =--> [{--},{--},{--},{--},{--}]
+//     const index = blogPostJson.findIndex((blog) => blog.id == req.params.id);
+//     // console.log("this is index", index)
+
+//     const blogToModify = blogPostJson[index];
+//     // console.log("this is index 2", bookToModify)
+//     blogToModify.comments = blogToModify.comments || [];
+//     // const UpdatedReqBody = req.body // incoming change inputted by user from FE
+//     // console.log("this is req.body", UpdatedReqBody)
+
+//     const updatedBlog = {
+//       ...blogToModify,
+//       comments: [...blogToModify.comments, comment],
+//       updatedAt: new Date(),
+//       id: req.params.id,
+//     }; // union of two bodies
+//     // console.log("this is updateBook", updatedBlog)
+
+//     blogPostJson[index] = updatedBlog;
+//     await writeBlogPostJson(blogPostJson);
+
+//     res.send(updatedBlog);
+//   } catch (error) {
+//     next(error);
+//   }
+// });
+// blogpostRouter.get("/:id/comments", async (req, res, next) => {
+//   try {
+//     const blogPostJson = await readBlogPostJson(); //reading  blogPostJson is (array of object) =--> [{--},{--},{--},{--},{--}]
+
+//     const singleBlog = blogPostJson.find((b) => b.id == req.params.id); //findindg the exact data needed
+//     console.log(singleBlog);
+
+//     singleBlog.comments = singleBlog.comments || [];
+//     res.send(singleBlog.comments);
+//   } catch (error) {
+//     next(error);
+//   }
+// });

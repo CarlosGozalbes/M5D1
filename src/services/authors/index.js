@@ -7,6 +7,9 @@ import { getAuthors, writeAuthors } from "../../lib/fs-tools.js"
 import { validationResult } from "express-validator";
 import createHttpError from "http-errors";
 
+import multer from "multer";
+import { saveAuthorsAvatars  } from "../../lib/fs-tools.js";
+
 const authorsRouter = express.Router();
 
 // const currentFilePath = fileURLToPath(import.meta.url);
@@ -23,7 +26,7 @@ authorsRouter.post("/", async (req, res, next) => {
   try {
     const errorList = validationResult(req)
    if (errorList.isEmpty()) {
-    const newAuthor = { ...req.body, ID: uniqid() };
+    const newAuthor = { ...req.body, createdAt: new Date(), ID: uniqid() };
     
     const authorsArray = await getAuthors()
 
@@ -157,5 +160,36 @@ authorsRouter.delete("/:authorID", async (req, res, next) => {
 
 //   res.status(204).send();
 // });
+authorsRouter.post(
+  "/:authorID/uploadAvatar",
+  multer().single("avatar"),
+  async (req, res, next) => {
+    // "avatar" does need to match exactly to the name used in FormData field in the frontend, otherwise Multer is not going to be able to find the file in the req.body
+    try {
+      console.log("FILE: ", req.file);
+      await saveAuthorsAvatars(req.file.originalname, req.file.buffer);
+      //that saves the pic into the publicfolder
+
+      const authorID = req.params.authorID;
+      const authorArray = await getAuthors();
+      const index = authorArray.findIndex((author) => author.ID === authorID);
+      const oldAuthor = authorArray[index];
+      const updatedAuthor = {
+        ...oldAuthor,
+        avatar: req.file,
+        updatedAt: new Date(),
+      };
+      authorArray[index] = updatedAuthor;
+      await writeAuthors(authorArray);
+      //that saves the pic into the author
+      
+      
+      res.send("Ok");
+      
+    } catch (error) {
+      next(error);
+    }
+  }
+);
 
 export default authorsRouter;
