@@ -143,7 +143,7 @@ blogPostsRouter.post(
   "/:blogPostId/uploadCover",
   multer().single("cover"),
   async (req, res, next) => {
-    // "avatar" does need to match exactly to the name used in FormData field in the frontend, otherwise Multer is not going to be able to find the file in the req.body
+    // "cover" does need to match exactly to the name used in FormData field in the frontend, otherwise Multer is not going to be able to find the file in the req.body
     try {
       console.log("FILE: ", req.file);
       await saveBlogPostsCovers(req.file.originalname, req.file.buffer);
