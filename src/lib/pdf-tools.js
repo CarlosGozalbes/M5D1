@@ -15,14 +15,15 @@ export const getPDFReadableStream = (foundBlogPost) => {
     content: [
       {
         image: foundBlogPost.cover,
-        width: 645,
-        height: 400,
+        width: 480,
+        height: 300,
       },
-
+      '\n',
       {
         text: foundBlogPost.title,
         style: "header",
       },
+      '\n',
       foundBlogPost.content
     ],
     styles: {

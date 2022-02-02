@@ -22,3 +22,5 @@ export const saveAuthorsAvatars = (filename, contentAsABuffer) =>
 
 export const saveBlogPostsCovers = (filename, contentAsABuffer) =>
   writeFile(join(blogPostsPublicFolderPath, filename), contentAsABuffer);
+
+  console.log(blogPostsPublicFolderPath);

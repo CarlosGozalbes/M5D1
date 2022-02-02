@@ -12,6 +12,7 @@ import { getBlogPosts, writeBlogPosts } from "../../lib/fs-tools.js";
 import {v2 as cloudinary} from 'cloudinary'
 import {CloudinaryStorage} from "multer-storage-cloudinary"
 import { getPDFReadableStream } from "../../lib/pdf-tools.js";
+import { pipeline } from "stream";
 //first we define the url to the JSON
 // const blogPostsJSONPath = join(
 //   dirname(fileURLToPath(import.meta.url)),
