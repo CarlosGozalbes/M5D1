@@ -11,6 +11,7 @@ import { saveBlogPostsCovers } from "../../lib/fs-tools.js";
 import { getBlogPosts, writeBlogPosts } from "../../lib/fs-tools.js";
 import {v2 as cloudinary} from 'cloudinary'
 import {CloudinaryStorage} from "multer-storage-cloudinary"
+import { getPDFReadableStream } from "../../lib/pdf-tools.js";
 //first we define the url to the JSON
 // const blogPostsJSONPath = join(
 //   dirname(fileURLToPath(import.meta.url)),
@@ -235,6 +236,28 @@ blogPostsRouter.post(
     }
   }
 );
+
+blogPostsRouter.get("/:blogPostId/downloadPDF", async (req, res, next) => {
+  try {
+    
+    const blogPostId = req.params.blogPostId;
+
+    const blogPostsArray = await getBlogPosts();
+
+    const foundBlogPost = blogPostsArray.find(
+      (blogPost) => blogPost._id === blogPostId)
+    console.log(foundBlogPost)
+    res.setHeader("Content-Disposition", `attachment; filename=${foundBlogPost.title}.pdf`);
+
+    const source = getPDFReadableStream(foundBlogPost);
+    const destination = res;
+    pipeline(source, destination, (err) => {
+      if (err) next(err);
+    });
+  } catch (error) {
+    next(error);
+  }
+});
 
 
 export default blogPostsRouter;
