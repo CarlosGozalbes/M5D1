@@ -9,7 +9,8 @@ import { newBlogPostsValidation } from "./validation.js";
 import multer from "multer";
 import { saveBlogPostsCovers } from "../../lib/fs-tools.js";
 import { getBlogPosts, writeBlogPosts } from "../../lib/fs-tools.js";
-
+import {v2 as cloudinary} from 'cloudinary'
+import {CloudinaryStorage} from "multer-storage-cloudinary"
 //first we define the url to the JSON
 // const blogPostsJSONPath = join(
 //   dirname(fileURLToPath(import.meta.url)),
@@ -141,13 +142,13 @@ blogPostsRouter.delete("/:blogPostId", async (req, res, next) => {
 
 blogPostsRouter.post(
   "/:blogPostId/uploadCover",
-  multer().single("cover"),
+  multer({storage: new CloudinaryStorage({cloudinary, params: {folder:"oct21",},})}).single("cover"),
   async (req, res, next) => {
     // "cover" does need to match exactly to the name used in FormData field in the frontend, otherwise Multer is not going to be able to find the file in the req.body
     try {
-      console.log("FILE: ", req.file);
-      await saveBlogPostsCovers(req.file.originalname, req.file.buffer);
-      const blogPostId = req.params.blogPostsRouter;
+      // console.log("FILE: ", req.file);
+      // await saveBlogPostsCovers(req.file.originalname, req.file.buffer);
+      const blogPostId = req.params.blogPostId;
 
       const blogPostsArray = await getBlogPosts();
 
@@ -156,10 +157,10 @@ blogPostsRouter.post(
       );
 
       const oldBlogPost = blogPostsArray[index];
-
+      
       const updatedBlogPost = {
         ...oldBlogPost,
-        cover: req.file,
+        cover: req.file.path,
         updatedAt: new Date(),
       };
 
@@ -168,7 +169,7 @@ blogPostsRouter.post(
       await writeBlogPosts(blogPostsArray);
       
       
-      res.send("Ok");
+      res.send(req.file.path);
     } catch (error) {
       next(error);
     }
