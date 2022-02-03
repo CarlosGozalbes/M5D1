@@ -13,6 +13,7 @@ import {v2 as cloudinary} from 'cloudinary'
 import {CloudinaryStorage} from "multer-storage-cloudinary"
 import { getPDFReadableStream } from "../../lib/pdf-tools.js";
 import { pipeline } from "stream";
+import { sendNewBlog } from "../../lib/email-tools.js";
 //first we define the url to the JSON
 // const blogPostsJSONPath = join(
 //   dirname(fileURLToPath(import.meta.url)),
@@ -49,6 +50,10 @@ blogPostsRouter.post("/", newBlogPostsValidation, async (req, res, next) => {
 
       // 4. Write array to file
       await writeBlogPosts(blogPostsArray);
+
+      //send blogupload email
+      const {email} = req.body
+      await sendNewBlog(email)
 
       // 5. Send back a proper response
       res.status(201).send({ id: newBlogPosts._id });
