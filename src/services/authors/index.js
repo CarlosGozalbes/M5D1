@@ -6,7 +6,7 @@ import uniqid from "uniqid";
 import { getAuthors, writeAuthors } from "../../lib/fs-tools.js"
 import { validationResult } from "express-validator";
 import createHttpError from "http-errors";
-
+import { getAuthorsReadableStream } from "../../lib/fs-tools.js";
 import multer from "multer";
 import { saveAuthorsAvatars  } from "../../lib/fs-tools.js";
 
@@ -191,5 +191,27 @@ authorsRouter.post(
     }
   }
 );
+
+
+authorsRouter.get("/downloadCSV", (req, res, next) => {
+  try {
+    // SOURCE (books.json) --> TRANSFORM (csv) --> DESTINATION (res)
+
+    res.setHeader("Content-Disposition", "attachment; filename=authors.csv");
+
+    const source = getAuthorsReadableStream();
+    const transform = new json2csv.Transform({
+      fields: ["ID", "name", "surname", "dateOfBirth", "email"],
+    });
+    const destination = res;
+
+    pipeline(source, transform, destination, (err) => {
+      if (err) next(err);
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 
 export default authorsRouter;
