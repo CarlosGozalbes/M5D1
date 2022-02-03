@@ -1,15 +1,31 @@
-import sgMail from '@sendgrid/mail'
-import { text } from 'stream/consumers'
+import sgMail from "@sendgrid/mail";
 
-sgMail.setApiKey(process.env.SENDGRID_KEY)
+import { getPDFReadableStream } from "./pdf-tools.js";
 
-export const sendNewBlog = async (recipientAddress) => {
+sgMail.setApiKey(process.env.SENDGRID_KEY);
+
+export const sendNewBlog = async (newBlog) => {
+  try {
+    const data = await getPDFReadableStream(newBlog, true);
+
     const msg = {
-        to: recipientAddress,
-        from: process.env.SENDER_EMAIL,
-        subject:'New Post',
-        text: 'you created a new post'
-    }
+      to: newBlog.email,
+      from: process.env.SENDGRID_EMAIL,
+      subject: "New Post",
+      text: "you created a new post",
+      attachments: [
+        {
+          content: data.toString("base64"),
+          filename: `${newBlog.title}.pdf`,
+          type: "application/pdf",
+          disposition: "attachment",
+          content_id: "mytext",
+        },
+      ],
+    };
 
-    await sgMail.send(msg)
-}
+    const res = await sgMail.send(msg);
+  } catch (error) {
+    console.log({ errors: error.response.body.errors });
+  }
+};

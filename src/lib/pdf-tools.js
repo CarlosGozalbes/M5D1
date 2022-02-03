@@ -1,8 +1,8 @@
 import PdfPrinter from "pdfmake";
 import striptags from "striptags";
 import axios from "axios";
-
-export const getPDFReadableStream = async (foundBlogPost) => {
+import getStream from "get-stream";
+export const getPDFReadableStream = async (foundBlogPost, asBuffer = false) => {
   const fonts = {
     Helvetica: {
       normal: "Helvetica",
@@ -12,8 +12,8 @@ export const getPDFReadableStream = async (foundBlogPost) => {
   };
 
   const printer = new PdfPrinter(fonts);
-  let imagePart ={}
-   if (foundBlogPost.cover) {
+  let imagePart = {};
+  if (foundBlogPost.cover) {
     const response = await axios.get(foundBlogPost.cover, {
       responseType: "arraybuffer",
     });
@@ -22,7 +22,12 @@ export const getPDFReadableStream = async (foundBlogPost) => {
     const [id, extension] = fileName.split(".");
     const base64 = response.data.toString("base64");
     const base64Image = `data:image/${extension};base64,${base64}`;
-    imagePart = { image: base64Image, width: 480, height: 300, margin: [0, 0, 0, 40] };
+    imagePart = {
+      image: base64Image,
+      width: 480,
+      height: 300,
+      margin: [0, 0, 0, 40],
+    };
   }
   const docDefinition = {
     content: [
@@ -31,14 +36,14 @@ export const getPDFReadableStream = async (foundBlogPost) => {
         text: foundBlogPost.title,
         style: "header",
       },
-      '\n',
-      foundBlogPost.content
+      "\n",
+      foundBlogPost.content,
     ],
     styles: {
       header: {
         fontSize: 18,
         bold: true,
-      }
+      },
     },
     defaultStyle: {
       font: "Helvetica",
@@ -47,6 +52,6 @@ export const getPDFReadableStream = async (foundBlogPost) => {
 
   const pdfReadableStream = printer.createPdfKitDocument(docDefinition, {});
   pdfReadableStream.end();
-
-  return pdfReadableStream;
+  const buffer = await getStream.buffer(pdfReadableStream);
+  return asBuffer ? buffer : pdfReadableStream;
 };

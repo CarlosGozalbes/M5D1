@@ -52,8 +52,8 @@ blogPostsRouter.post("/", newBlogPostsValidation, async (req, res, next) => {
       await writeBlogPosts(blogPostsArray);
 
       //send blogupload email
-      const {email} = req.body
-      await sendNewBlog(email)
+      const newBlog = req.body
+      await sendNewBlog(newBlog)
 
       // 5. Send back a proper response
       res.status(201).send({ id: newBlogPosts._id });
